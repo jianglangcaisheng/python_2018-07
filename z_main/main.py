@@ -1,5 +1,5 @@
 
-# _180914_can_run
+# _180914_can_run123
 
 import tensorflow as tf
 import numpy as np
@@ -1931,7 +1931,7 @@ def run2_forShape(ifPose = True, mode=None, filename_pose1="", filename_pose2=""
 
     tf.reset_default_graph()
 
-
+#
 names = locals()
 startTime_system = datetime.datetime.now()
 
