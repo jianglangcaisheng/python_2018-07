@@ -233,10 +233,12 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                 begin = datetime.datetime.now()
 
                 pathSave_imageClustered = cf.pathVideo_ + "v%d/" % i_view
-                if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)):
+                if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)) or 1:
                 # if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)) or cf_getBC.i_frame < 150:
                     get_B_C(i_view, cf_getBC)
                     print("get_B_C")
+                else:
+                    print("Use B_C before.")
 
                 # print(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)
 

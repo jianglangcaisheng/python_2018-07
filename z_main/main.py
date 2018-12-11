@@ -2064,7 +2064,7 @@ if is_optimize_shape:
 
 # 优化pose
 if 1:
-    i_image = 3067
+    i_image = 2000
 
     if is_optimize_shape == True:
         filename_pose = cf.path_save_direction + \
