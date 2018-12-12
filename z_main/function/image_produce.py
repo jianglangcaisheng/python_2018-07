@@ -107,6 +107,96 @@ def cluster_quad(im,leftup,rightdown,depth, B, C):
     return
 
 
+def cluster_quad_breadthFirst(im,leftup,rightdown, B, C):
+    image_shape = im.shape[0]   # b
+    eta = 0.03
+
+    imblob = im[leftup[0]:rightdown[0], leftup[1]:rightdown[1], :]
+    [imblob_x, imblob_y, _] = imblob.shape
+    im_color = np.reshape(imblob, [imblob_x * imblob_y, 3])
+
+    sigma_color = np.linalg.norm(np.std(a=im_color, ddof=1, axis=0))
+    mean_color = np.mean(a=im_color, axis=0)
+
+    mu = np.int32([np.floor((leftup[0] + rightdown[0]) / 2),
+                   np.floor((leftup[1] + rightdown[1]) / 2)])
+
+    B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+    C.append(mean_color)
+
+    def quad_first(im, B, C):
+
+        i_B = B.pop(0)
+        i_C = C.pop(0)
+        [leftup_1, leftup_0, rightdown_1, rightdown_0] = i_B
+        leftup = [leftup_0, leftup_1]
+        rightdown = [rightdown_0, rightdown_1]
+        mu = np.int32([np.floor((leftup[0] + rightdown[0]) / 2),
+                       np.floor((leftup[1] + rightdown[1]) / 2)])
+
+        def calcu_mean_sigma(im, leftup, rightdown):
+            imblob = im[leftup[0]:rightdown[0], leftup[1]:rightdown[1], :]
+            [imblob_x, imblob_y, _] = imblob.shape
+            im_color = np.reshape(imblob, [imblob_x * imblob_y, 3])
+
+            sigma_color = np.linalg.norm(np.std(a=im_color, ddof=1, axis=0))
+            mean_color = np.mean(a=im_color, axis=0)
+            return [mean_color, sigma_color]
+
+        [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+
+        if sigma_color < eta:
+            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+            C.append(mean_color)
+        else:
+            leftup_origin = leftup
+            rightdown_origin = rightdown
+
+            leftup = leftup_origin
+            rightdown = mu
+            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+            C.append(mean_color)
+
+            leftup = [leftup_origin[0], mu[1]]
+            rightdown = [mu[0], rightdown_origin[1]]
+            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+            C.append(mean_color)
+
+            leftup = [mu[0], leftup_origin[1]]
+            rightdown = [rightdown_origin[0], mu[1]]
+            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+            C.append(mean_color)
+
+            leftup = mu
+            rightdown = rightdown_origin
+            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+            C.append(mean_color)
+
+            # cluster_quad(im=im,
+            #              leftup=leftup, rightdown=mu, depth=depth, B=B, C=C)
+            # cluster_quad(im=im,
+            #              leftup=[leftup[0], mu[1]], rightdown=[mu[0], rightdown[1]], depth=depth, B=B, C=C)
+            # cluster_quad(im=im,
+            #              leftup=[mu[0], leftup[1]], rightdown=[rightdown[0], mu[1]], depth=depth, B=B, C=C)
+            # cluster_quad(im=im,
+            #              leftup=mu, rightdown=rightdown, depth=depth, B=B, C=C)
+
+
+    while B.__len__() < cf.params.max_cluster:
+        quad_first(im, B, C)
+
+    if B.__len__() > cf.params.max_cluster:
+        for i_redundant in range(B.__len__() - cf.params.max_cluster):
+            B.pop()
+            C.pop()
+
+    return
+
+
 class CF_getBC:
     def __init__(self, leftup, rightdown, depth, path_video, i_frame, shape_or_pose):
         self.leftup = leftup
@@ -145,21 +235,84 @@ def get_B_C(i_view, cf_getBC):
         pathSave_imageClustered = cf.pathVideo_ + "v%d/" % i_view
         utility.mkdir(pathSave_imageClustered)
 
+        max_cluster = 5000
+
         file = open(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame, 'w')
+        i_cluster = 0
         for fp in B:
             file.write(str(fp))
             file.write('\n')
+            i_cluster = i_cluster + 1
+            if i_cluster == max_cluster:
+                break
         file.close()
 
         file = open(pathSave_imageClustered + "image%d_C.txt" % cf_getBC.i_frame, 'w')
+        i_cluster = 0
         for fp in C:
             file.write(str(fp))
             file.write('\n')
+            i_cluster = i_cluster + 1
+            if i_cluster == max_cluster:
+                break
         file.close()
     if time_calcu == True:
         print("Time of saving 1 cluster of image: " + str((datetime.datetime.now() - begin)))
 
-    # return [B, C]
+    return
+
+
+def get_B_C_breadthFirst(i_view, cf_getBC):
+    time_calcu = False
+
+    begin = datetime.datetime.now()
+
+    B = []
+    C = []
+
+    if cf_getBC.shape_or_pose == "sil_for_deep":
+        postfix = "jpg"
+    else:
+        postfix = "bmp"
+
+    image = get8ImageFromImage(path=cf_getBC.path_video, SID=cf_getBC.i_frame, views=[i_view], postfix=postfix)
+    if time_calcu == True:
+        print("\ni_frame: %d" % cf_getBC.i_frame)
+        print("Time of getting 1 image: " + str((datetime.datetime.now() - begin)))
+
+    cluster_quad_breadthFirst(im=image[0], leftup=cf_getBC.leftup, rightdown=cf_getBC.rightdown, B=B, C=C)
+    if time_calcu == True:
+        print("Time of clustering 1 image: " + str((datetime.datetime.now() - begin)))
+
+    # write to file
+    if 1:
+        pathSave_imageClustered = cf.pathVideo_ + "v%d/" % i_view
+        utility.mkdir(pathSave_imageClustered)
+
+        # max_cluster = 5000
+
+        file = open(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame, 'w')
+        # i_cluster = 0
+        for fp in B:
+            file.write(str(fp))
+            file.write('\n')
+            # i_cluster = i_cluster + 1
+            # if i_cluster == max_cluster:
+            #     break
+        file.close()
+
+        file = open(pathSave_imageClustered + "image%d_C.txt" % cf_getBC.i_frame, 'w')
+        # i_cluster = 0
+        for fp in C:
+            file.write(str(fp))
+            file.write('\n')
+            # i_cluster = i_cluster + 1
+            # if i_cluster == max_cluster:
+            #     break
+        file.close()
+    if time_calcu == True:
+        print("Time of saving 1 cluster of image: " + str((datetime.datetime.now() - begin)))
+
     return
 
 
@@ -235,7 +388,13 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                 pathSave_imageClustered = cf.pathVideo_ + "v%d/" % i_view
                 if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)) or 1:
                 # if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)) or cf_getBC.i_frame < 150:
-                    get_B_C(i_view, cf_getBC)
+                    try:
+                        if 0:
+                            get_B_C(i_view, cf_getBC)
+                        else:
+                            get_B_C_breadthFirst(i_view, cf_getBC)
+                    except AssertionError:
+                        utility.print_red("Img is None")
                     print("get_B_C")
                 else:
                     print("Use B_C before.")
@@ -248,7 +407,18 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                 C.clear()
 
                 begin_read_image = datetime.datetime.now()
-                file = open(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame, 'r')
+                i_frame_open = cf_getBC.i_frame
+                while True:
+                    pathFile_B_C = pathSave_imageClustered + "image%d_B.txt" % i_frame_open
+                    try:
+                        file = open(pathFile_B_C, 'r')
+                        break
+                    except:
+                        utility.print_red("Not exists: %s" % pathFile_B_C)
+                        i_frame_open = i_frame_open - 1
+                        if i_frame_open < 0:
+                            assert False, "B: i_frame_open < 0"
+
                 for i_row in file:
                     i_row_str = i_row.lstrip('[').rstrip(']\n').split(', ')
                     i_row_number = [int(x) for x in i_row_str]
@@ -258,7 +428,18 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                         print(B.shape)
                 file.close()
 
-                file = open(pathSave_imageClustered + "image%d_C.txt" % cf_getBC.i_frame, 'r')
+                while True:
+                    pathFile_B_C = pathSave_imageClustered + "image%d_C.txt" % i_frame_open
+                    try:
+                        file = open(pathFile_B_C, 'r')
+                        break
+                    except:
+                        utility.print_red("Not exists: %s" % pathFile_B_C)
+                        i_frame_open = i_frame_open - 1
+                        if i_frame_open < 0:
+                            assert False, "C: i_frame_open < 0"
+
+                # file = open(pathSave_imageClustered + "image%d_C.txt" % cf_getBC.i_frame, 'r')
                 from functools import reduce
                 def str2float(s):
                     L = s.rstrip().split('.')

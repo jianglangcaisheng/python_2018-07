@@ -16,6 +16,7 @@ import z_main.function_0505_2_crossPlatform.module_Lab as module_Lab
 import z_main.function_mini as function_mini
 import z_main.function.image_produce as mImage_produce
 from z_main.config_class import ModeConfig
+import utility
 
 
 def mkdir(path):
@@ -461,8 +462,19 @@ def draw_body2(images, data_result, cf_for_drawBody):
             if mode_image == "cluster":
                 imageCopy = images[i_num_view].copy()
             elif mode_image == "origin":
-                pathFile_image = cf.pathVideo_ + ("%d_bmp/%d-%d.bmp" % (i_num_view, cf_for_drawBody.i_frame, i_num_view))
-                imageCopy = cv2.imread(pathFile_image)
+                while True:
+                    i_frame_open = cf_for_drawBody.i_frame
+                    pathFile_image = cf.pathVideo_ + ("%d_bmp/%d-%d.bmp" % (i_num_view, i_frame_open, i_num_view))
+                    try:
+                        imageCopy = cv2.imread(pathFile_image)
+                        break
+                    except:
+                        utility.print_red("Error pathFile_image: %s" % pathFile_image)
+                        i_frame_open = i_frame_open - 1
+                        if i_frame_open < 0:
+                            assert False, "i_frame_open < 0"
+            else:
+                assert False, "mode_image doesn't has: %s" % mode_image
 
             if mode_colorSpace == "Lab":
                 imageCopy =module_Lab.BGR2RGB(imageCopy)
@@ -506,12 +518,18 @@ def draw_body2(images, data_result, cf_for_drawBody):
                     cv2.rectangle(imageCopy, (row_down, col_down), (row_up, col_up), color=(255, 0, 0), thickness=4)
 
             # save
-            pathSave_image = cf.pathSaveImage + note + "_c" + mode_colorSpace + "_v" + str(i_num_view) + ".png"
-            result = cv2.imwrite(pathSave_image, imageCopy, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
+            if 0:
+                pathSave_image = cf.pathSaveImage + note + "_c" + mode_colorSpace + "_v" + str(i_num_view) + ".png"
+                result = cv2.imwrite(pathSave_image, imageCopy, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
+            else:
+                pathSave_image = cf.pathSaveImage + note + "_c" + mode_colorSpace + "_v" + str(i_num_view) + ".jpg"
+                result = cv2.imwrite(pathSave_image, imageCopy, [int(cv2.IMWRITE_JPEG_OPTIMIZE), 0])
+
             if result == False:
                 print("pathSave_image: %s" % pathSave_image)
                 print("pathFile_image: %s" % pathFile_image)
-                assert False, "Failure imwrite"
+                utility.print_red("Failure imwrite: %s" % pathSave_image )
+                # assert False, "Failure imwrite"
 
     # imshow in running
     if 0:
@@ -660,7 +678,7 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
     if switch_writer == False:
         if_save_time = False
 
-    if_save_result = True  # no influence on time
+    if_save_result = False  # no influence on time
 
     # preProduce................................................................................................................
     note = "_" + video_choose + note_simple
@@ -1111,7 +1129,7 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
             flag_fisrt = True
             for i in range(i_begin, i_end):
                 # log
-                if i % (10) == 0:
+                if i % (10) == 0 and 0:
                     if if_save_time == True:
                         _, result = sess.run([train_optimizer, merged], feed_dict={
                         B_mu_in_tensor: B_mu_npz[0],
@@ -1129,7 +1147,7 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                         writer.add_summary(result, i - 1.8 * 1000000000)
                 # print info. 运行时间：500/55s
                 times_per_print = 500
-                if i % (times_per_print) == 0:
+                if i % (times_per_print) == 0 and 1:
                     if flag_fisrt == False:
                         if time_delta == 0:
                             time_delta = datetime.datetime.now() - print_now
@@ -1150,7 +1168,7 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                 # save image
                 if (i + 1) % cf.trainTimes_poseInPose == 0 \
                         or mode == "expect color" \
-                        or (mode == "sil_for_deep" and ((i + 1) % cf.trainTimes_poseInShape_array[i_times]) == 0):
+                        or (mode == "sil_for_deep" and ((i + 1) % cf.trainTimes_poseInShape_array[i_times]) == 0 and 0):
                     coordinate_2D_eval = np.float64(sess.run(coordinate_2D_tensor))
                     radius_2D_eval = np.float64(sess.run(radius_2D_tensor))
 
@@ -1181,7 +1199,9 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                                    read_bodyColor(path_color_for_drawBody)]
                     if frame_start >= 150:
                         cf_for_drawBody = CF_for_drawBody(mode_image="origin")
-                        draw_body2(None, data_result, cf_for_drawBody)
+                        cf_for_drawBody = CF_for_drawBody(mode_image="cluster")
+                        draw_body2(getImageClustered, data_result, cf_for_drawBody)
+                        # draw_body2(None, data_result, cf_for_drawBody)
                     else:
                         cf_for_drawBody = CF_for_drawBody(mode_image="cluster")
                         draw_body(mode=cf_for_drawBody.mode,
@@ -2076,6 +2096,8 @@ if 1:
         str_DateTime_save_tmp = "181128"
         # str_DateTime_save_tmp = cf.str_DateTime_save_last
         filename_pose = "%s%s_pose_%d.mat" % (cf.path_save_direction, str_DateTime_save_tmp, i_image - 1)
+        # todo: choose
+        # filename_pose = "%s%s_pose_%d.mat" % (cf.path_save_direction, "181211", i_image - 1)
         filename_rl = "%s%s_%d_shape.mat" % (cf.path_save_direction, str_DateTime_save_tmp, num_times - 1)
         path_TposeColor_optimized = "%s%s_%d_color_pose0" % (cf.path_save_direction, str_DateTime_save_tmp, num_times - 1)
 

@@ -21,6 +21,10 @@ def str2red(arg):
     return "\033[0;31m" + arg + "\033[0m"
 
 
+def print_red(arg):
+    print("\033[0;31m" + arg + "\033[0m")
+
+
 def timeManager(begin_time, last_time, id, remainings):
     now = datetime.datetime.now()
     time_run_delta = now - last_time

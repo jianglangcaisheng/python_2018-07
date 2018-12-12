@@ -47,6 +47,15 @@ if 1:
     else:
         assert False, "Error arg"
 
+    class Params:
+        def __init__(self):
+            self.max_cluster = int(24000 / 3)
+            self.max_cluster = int(2400)
+            # self.max_cluster = int(24000)
+
+
+    params = Params()
+
     trainStepPose = 0.00000001 * 3 / 10 / 10 / 1
 
     num_times_in_shape = 4
@@ -74,8 +83,8 @@ if 1:
 
     imageWidth = 2048
     imageHeight = 1536
-    image_cluster_number = int(24000)
-    # image_cluster_number = 3000
+    # image_cluster_number = int(24000 / 3)
+    image_cluster_number = params.max_cluster
     bodyNumBall = 63
     num_view = 8
 
@@ -140,7 +149,14 @@ if 1:
             ["181126", "2152", "D113_root16_weight2"],
             ["181126", "2152", "D112_root16_weight2"],
             ["181128", "0310", "D111_root16_weight2"],
-            ["181211", "1731", "D111_test"]
+            ["181211", "1731", "D111_test"],
+            ["181211", "2103", "D111_cluster"],
+            ["181211", "2236", "D111_cluster25000"],
+            ["181211", "2333", "D111_cluster24000_bottomMean"],
+            ["181212", "1018", "D111_cluster2400_maxSpeed"]
+            # ,
+            # ["181212", "0144", "D111_cluster8000_testSpeed"],
+            # ["181212", "0149", "D111_cluster2400_testSpeed"]
         ]
 
         str_level_2 = str_level_2_list[-1]
@@ -160,31 +176,21 @@ if 1:
             str_dir_final_last = "%s_%s_%s/" % (str_level_2_last[0], str_level_2_last[1], str_level_2_last[2])
 
             if 1:
-                str_DateTime_save_last = "181124"
-                str_DateTime_save_last = str_level_2_last[0]
+                str_DateTime_save_last = "181128"
+                # str_DateTime_save_last = str_level_2_last[0]
                 files_tobeCopied = [
                     str_DateTime_save_last + "_3_shape.mat",
                     str_DateTime_save_last + "_3_color_pose0.mat",
-                    str_DateTime_save_last + "_pose_285.mat"
+                    str_DateTime_save_last + "_pose_1999.mat"
                 ]
-            else:
-                files_tobeCopied = [
-                    "181023_3_shape.mat",
-                    "181023_3_color_pose0.mat",
-                    "181025_pose_510.mat",
-                    "181025_pose_511.mat",
-                    "181025_pose_512.mat",
-                    "181025_pose_513.mat",
-                    "181025_pose_514.mat",
-                    "181025_pose_515.mat"
-                ]
-                for i_fileResult in range(411, 511):
-                    files_tobeCopied.append("181024_pose_%d.mat" % i_fileResult)
             try:
                 for i_file in files_tobeCopied:
-                    shutil.copy(pathSave + str_dir_final_last + i_file, path_save_direction + i_file)
+                    pathFile_src = pathSave + str_dir_final_last + i_file
+                    pathFile_dst = path_save_direction + i_file
+                    shutil.copy(pathFile_src, pathFile_dst)
+                    print("Success in copying: %s" % pathFile_dst)
             except:
-                pass
+                utility.print_red("Not exists: %s" % pathFile_src)
 
         str_dir_level_12 = str_dir_level_1 + str_dir_final
 
