@@ -21,6 +21,12 @@ import shutil
 # congif core
 pass
 
+
+class Base:
+    def __init__(self):
+        self.name = "None"
+
+
 #  system config.........................................................................................................
 if 1:
     os.environ["CUDA_VISIBLE_DEVICES"] = '0'
@@ -49,10 +55,15 @@ if 1:
 
     class Params:
         def __init__(self):
-            self.max_cluster = int(24000 / 3)
-            self.max_cluster = int(2400)
-            # self.max_cluster = int(24000)
-
+            # max_cluster>63
+            max_clusters = [24000, 8000, 2400, 100]
+            self.max_cluster = max_clusters[1]
+            self.epsilon = 0.15
+            self.bodyNumBall = 63
+            self.imageWidth = 2048
+            self.imageHeight = 1536
+            self.depth_judgeColor = 6
+            self.broad = 1.2
 
     params = Params()
 
@@ -90,6 +101,12 @@ if 1:
 
 # path..................................................................................................................
 if 1:
+    class Path:
+        def __init__(self):
+            self.YOLO_label = r"F:\0 SoG\data\0_dataResult\1811_2\yolo\label/"
+
+    path = Path()
+
     class PathImage:
         def __init__(self, PC):
             pathHalf_image = "0_image_1811_2_cali/K1_RT1"  # warning1:new_data
@@ -153,7 +170,9 @@ if 1:
             ["181211", "2103", "D111_cluster"],
             ["181211", "2236", "D111_cluster25000"],
             ["181211", "2333", "D111_cluster24000_bottomMean"],
-            ["181212", "1018", "D111_cluster2400_maxSpeed"]
+            ["181212", "1018", "D111_cluster2400_maxSpeed"],
+            ["181212", "1117", "D111_cluster2400_people"],
+            ["181212", "1117", "D111_cluster24000_watchChange"]
             # ,
             # ["181212", "0144", "D111_cluster8000_testSpeed"],
             # ["181212", "0149", "D111_cluster2400_testSpeed"]
@@ -190,6 +209,7 @@ if 1:
                     shutil.copy(pathFile_src, pathFile_dst)
                     print("Success in copying: %s" % pathFile_dst)
             except:
+                utility.print_red("Not copy old files.")
                 utility.print_red("Not exists: %s" % pathFile_src)
 
         str_dir_level_12 = str_dir_level_1 + str_dir_final

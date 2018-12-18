@@ -517,6 +517,27 @@ def draw_body2(images, data_result, cf_for_drawBody):
 
                     cv2.rectangle(imageCopy, (row_down, col_down), (row_up, col_up), color=(255, 0, 0), thickness=4)
 
+            if 1:
+                i_frame_load = cf_for_drawBody.i_frame
+                while True:
+                    try:
+                        pathfile_YOLO_label = cf.path.YOLO_label + "%d-%d.mat" % (i_frame_load, i_num_view)
+                        data = sio.loadmat(pathfile_YOLO_label)
+                        break
+                    except:
+                        utility.print_red("Not exists: %s" % pathfile_YOLO_label)
+                        i_frame_load = i_frame_load - 1
+
+                bounding_box = data['bounding_box']
+                cv2.rectangle(imageCopy, (bounding_box[0, 0], bounding_box[0, 1]), (bounding_box[0, 2], bounding_box[0, 3]), (0, 0, 255), 8)
+
+                from function.image_produce import broad_boundingBox
+                bounding_box, broad = broad_boundingBox(bounding_box, cf.params.broad)
+                cv2.rectangle(imageCopy, (bounding_box[0, 0], bounding_box[0, 1]), (bounding_box[0, 2], bounding_box[0, 3]), (0, 0, 255), 4)
+
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                imgzi = cv2.putText(imageCopy, str(broad), (50, 300), font, 1.2, (0, 0, 255), 2)
+
             # save
             if 0:
                 pathSave_image = cf.pathSaveImage + note + "_c" + mode_colorSpace + "_v" + str(i_num_view) + ".png"

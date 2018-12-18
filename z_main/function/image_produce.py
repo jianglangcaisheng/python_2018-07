@@ -107,7 +107,26 @@ def cluster_quad(im,leftup,rightdown,depth, B, C):
     return
 
 
-def cluster_quad_breadthFirst(im,leftup,rightdown, B, C):
+def broad_boundingBox(bounding_box, broad):
+    if broad != 1:
+        # 0,    1,   2,     3
+        # left, top, right, bottom
+        width = bounding_box[0, 2] - bounding_box[0, 0]
+        heighth = bounding_box[0, 3] - bounding_box[0, 1]
+        if width / heighth > 2 or heighth / width >2:
+            broad = (broad - 1) * 2 + 1
+
+        width_broad = width * (broad - 1) / 2
+        bounding_box[0, 2] = min(bounding_box[0, 2] + width_broad, cf.params.imageWidth - 1)
+        bounding_box[0, 0] = max(bounding_box[0, 0] - width_broad, 0)
+
+        heighth_broad = heighth * (broad - 1) / 2
+        bounding_box[0, 3] = min(bounding_box[0, 3] + heighth_broad, cf.params.imageHeight - 1)
+        bounding_box[0, 1] = max(bounding_box[0, 1] - heighth_broad, 0)
+    return bounding_box, broad
+
+
+def cluster_quad_breadthFirst(im,leftup,rightdown, B, C, cf_getBC):
     image_shape = im.shape[0]   # b
     eta = 0.03
 
@@ -124,11 +143,61 @@ def cluster_quad_breadthFirst(im,leftup,rightdown, B, C):
     B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
     C.append(mean_color)
 
-    def quad_first(im, B, C):
+
+    def has_intersection(set1, set2):
+        # 0,    1,   2,     3
+        # left, top, right, bottom
+        is_print = False
+        if set1[0, 3] < set2[0, 1] or set1[0, 2] < set2[0, 0] or set1[0, 1] > set2[0, 3] or set1[0, 0] > set2[0, 2]:
+            if is_print == True:
+                print("\nnot: ")
+                print(set1)
+                print(set2)
+            return False
+        else:
+            if is_print == True:
+                print("\nhas: ")
+                print(set1)
+                print(set2)
+            return True
+
+    from main import read_bodyColor
+    from main import path_TposeColor_optimized
+    body_color = read_bodyColor(path_TposeColor_optimized)
+    def color_out_bodyColor(body_color, i_C):
+        for i_color in range(cf.params.bodyNumBall):
+            color_point = body_color[i_color, :]
+            color_im = i_C
+            color_reduceSum = np.sqrt(np.sum((color_im - color_point) * (color_im - color_point), axis=0))
+            if color_reduceSum <= cf.params.epsilon:
+                return False
+        return True
+
+
+
+    def quad_first(im, B, C, bounding_box):
+        #todo: 队列加速
 
         i_B = B.pop(0)
         i_C = C.pop(0)
         [leftup_1, leftup_0, rightdown_1, rightdown_0] = i_B
+
+        left = leftup_1
+        top = leftup_0
+        right = rightdown_1
+        bottom = rightdown_0
+        bounding_box_cluster = np.array([[left, top, right, bottom]])
+        def is_judge_colorEta(bounding_box_cluster):
+            width = bounding_box_cluster[0, 2] - bounding_box_cluster[0, 0]
+            # heighth = bounding_box_cluster[0, 3] - bounding_box_cluster[0, 1]
+            if width < cf.params.imageWidth / np.power(2, cf.params.depth_judgeColor):
+                print("d", end="")
+                return True
+        # if not has_intersection(bounding_box_cluster, bounding_box):
+        if not has_intersection(bounding_box_cluster, bounding_box) or (is_judge_colorEta(bounding_box_cluster) and color_out_bodyColor(body_color, i_C)):
+            # print("+1")
+            return
+
         leftup = [leftup_0, leftup_1]
         rightdown = [rightdown_0, rightdown_1]
         mu = np.int32([np.floor((leftup[0] + rightdown[0]) / 2),
@@ -145,49 +214,70 @@ def cluster_quad_breadthFirst(im,leftup,rightdown, B, C):
 
         [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
 
+        is_must = False
         if sigma_color < eta:
-            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
-            C.append(mean_color)
+            if is_must or rightdown[1] > leftup[1] and rightdown[0] > leftup[0]:
+                B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+                C.append(mean_color)
         else:
             leftup_origin = leftup
             rightdown_origin = rightdown
 
             leftup = leftup_origin
             rightdown = mu
-            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
-            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
-            C.append(mean_color)
+            if is_must or (rightdown[1] > leftup[1] and rightdown[0] > leftup[0]):
+                B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+                [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+                C.append(mean_color)
 
             leftup = [leftup_origin[0], mu[1]]
             rightdown = [mu[0], rightdown_origin[1]]
-            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
-            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
-            C.append(mean_color)
+            if is_must or (rightdown[1] > leftup[1] and rightdown[0] > leftup[0]):
+                B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+                [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+                C.append(mean_color)
 
             leftup = [mu[0], leftup_origin[1]]
             rightdown = [rightdown_origin[0], mu[1]]
-            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
-            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
-            C.append(mean_color)
+            if is_must or (rightdown[1] > leftup[1] and rightdown[0] > leftup[0]):
+                B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+                [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+                C.append(mean_color)
 
             leftup = mu
             rightdown = rightdown_origin
-            B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
-            [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
-            C.append(mean_color)
+            if is_must or (rightdown[1] > leftup[1] and rightdown[0] > leftup[0]):
+                B.append([leftup[1], leftup[0], rightdown[1], rightdown[0]])
+                [mean_color, sigma_color] = calcu_mean_sigma(im, leftup, rightdown)
+                C.append(mean_color)
 
-            # cluster_quad(im=im,
-            #              leftup=leftup, rightdown=mu, depth=depth, B=B, C=C)
-            # cluster_quad(im=im,
-            #              leftup=[leftup[0], mu[1]], rightdown=[mu[0], rightdown[1]], depth=depth, B=B, C=C)
-            # cluster_quad(im=im,
-            #              leftup=[mu[0], leftup[1]], rightdown=[rightdown[0], mu[1]], depth=depth, B=B, C=C)
-            # cluster_quad(im=im,
-            #              leftup=mu, rightdown=rightdown, depth=depth, B=B, C=C)
-
-
+    B_len_list = []
     while B.__len__() < cf.params.max_cluster:
-        quad_first(im, B, C)
+
+        i_frame_load = cf_getBC.i_frame
+        while True:
+            try:
+                pathfile_YOLO_label = cf.path.YOLO_label + "%d-%d.mat" % (i_frame_load, cf_getBC.i_view)
+                data = sio.loadmat(pathfile_YOLO_label)
+                break
+            except:
+                utility.print_red("Not exists: %s" % pathfile_YOLO_label)
+                i_frame_load = i_frame_load - 1
+        bounding_box = data['bounding_box']
+
+        bounding_box, broad = broad_boundingBox(bounding_box, cf.params.broad)
+
+        quad_first(im, B, C, bounding_box)
+        if B_len_list.__len__() == 0:
+            B_len_list.append(B.__len__())
+        elif B.__len__() != B_len_list[-1]:
+            B_len_list.clear()
+        elif B.__len__() == B_len_list[-1]:
+            if B_len_list.__len__() >= 8000:
+                print("B_lenth: %d, same: %d" % (B_len_list[0], B_len_list.__len__()))
+                break
+            else:
+                B_len_list.append(B.__len__())
 
     if B.__len__() > cf.params.max_cluster:
         for i_redundant in range(B.__len__() - cf.params.max_cluster):
@@ -280,7 +370,8 @@ def get_B_C_breadthFirst(i_view, cf_getBC):
         print("\ni_frame: %d" % cf_getBC.i_frame)
         print("Time of getting 1 image: " + str((datetime.datetime.now() - begin)))
 
-    cluster_quad_breadthFirst(im=image[0], leftup=cf_getBC.leftup, rightdown=cf_getBC.rightdown, B=B, C=C)
+    cf_getBC.i_view = i_view
+    cluster_quad_breadthFirst(im=image[0], leftup=cf_getBC.leftup, rightdown=cf_getBC.rightdown, B=B, C=C, cf_getBC=cf_getBC)
     if time_calcu == True:
         print("Time of clustering 1 image: " + str((datetime.datetime.now() - begin)))
 
@@ -353,7 +444,7 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
         class ModeConfig_prePropose:
             def __init__(self, mode, path_Tpose, ifShape, path_TposeColor, silOrColor):
                 self.Num_point = 63
-                self.epsilon = 0.15
+                self.epsilon = cf.params.epsilon
                 self.mode = mode
                 self.path_Tpose = path_Tpose,
                 self.ifShape = ifShape
@@ -395,7 +486,7 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                             get_B_C_breadthFirst(i_view, cf_getBC)
                     except AssertionError:
                         utility.print_red("Img is None")
-                    print("get_B_C")
+                    print("get_B_C, view: %d" % i_view)
                 else:
                     print("Use B_C before.")
 
