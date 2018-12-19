@@ -1138,8 +1138,15 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                 mode_config = ModeConfig(i_frame=i_frame, ifAImage=not ifAllVideo, shape_or_pose=ifShape, mode=mode,
                                          path_video=path_video, path_Tpose=path_Tpose, path_TposeColor=path_TposeColor)
                 mImage_produce.getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode_config)
-            time_delta = 0
 
+            def save_result(filename_save):
+                axisAngle_3_23_final = np.float64(sess.run(axisAngle_3_23_tensor))
+                root_final = np.float64(sess.run(root_variable))
+                pose_save = np.concatenate((axisAngle_3_23_final, root_final), axis=1)
+
+                SaveAxisAngle(path_save=path_save, axisAngle_3_24=pose_save, filename_save=filename_save)
+
+            time_delta = 0
             # run
             if mode == "pose_in_all_video":
                 i_begin = train_times * i_frame
@@ -1240,32 +1247,16 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                         D_in_tensor: D_npz[0],
                         EII_tensor: EII_npz[0]})
 
+                if i % (10) == 0 and 1:
+                    if ifAllVideo == True:
+                        filename_save_real = filename_save + ("%d-i%d.mat" % (i_frame, i))
+                    save_result(filename_save_real)
+
             # save
             if if_save_result == True:
-
-                if ifPose == True:
-                    axisAngle_3_23_final = np.float64(sess.run(axisAngle_3_23_tensor))
-                    root_final = np.float64(sess.run(root_variable))
-                    pose_save = np.concatenate((axisAngle_3_23_final, root_final), axis=1)
-                    if ifAllVideo == True:
-                        SaveAxisAngle(path_save=path_save, axisAngle_3_24=pose_save, filename_save=filename_save + str(i_frame) + ".mat")
-                    else:
-                        SaveAxisAngle(path_save=path_save, axisAngle_3_24=pose_save, filename_save=filename_save)
-                elif ifShape == True:
-                    rl_final = np.float64(sess.run(rl_tensor))
-                    SaveRL(path_save=path_save, rl=rl_final, filename_save=filename_save)
-
-                    result_color = np.zeros(shape=[63, 3])
-                    coordinate_2D_final = np.float64(sess.run(coordinate_2D_tensor))
-                    for i_body in range(63):
-                        result_color[i_body, 0:3] = np.zeros(shape=[3])
-
-
-        # pose_final = np.reshape(np.float64(sess.run(pose_3_23_tensor)), (69), order='F')
-        # root_final = np.float64(np.squeeze(sess.run(root_variable), axis=1))
-        # pose_save = np.concatenate((pose_final, root_final), axis=0)
-        #
-        # SaveAll(path_save=path_save, pose=pose_save)
+                if ifAllVideo == True:
+                    filename_save_real = filename_save + str(i_frame) + ".mat"
+                save_result(filename_save_real)
 
             time_frame_last = time_frame
             time_frame = datetime.datetime.now()

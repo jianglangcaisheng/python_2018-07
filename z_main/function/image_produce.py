@@ -407,6 +407,15 @@ def get_B_C_breadthFirst(i_view, cf_getBC):
     return
 
 
+def normalize_light(RGB_space_uint8):
+    # todo 颜色重写
+    LAB_space = mLab.RGB2LAB(RGB_space_uint8)
+    LAB_space[:, :, 0] = function_mini.compress_L_in_Lab(LAB_space[:, :, 0])
+    RGB_space_new = mLab.LAB2RGB(LAB_space)
+    color_all = RGB_space_new / 255.
+    return color_all
+
+
 def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode_config):
 
     B_mu_new_fs = mu_sigma_D_EII[0]
@@ -477,7 +486,7 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                 begin = datetime.datetime.now()
 
                 pathSave_imageClustered = cf.pathVideo_ + "v%d/" % i_view
-                if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)) or 1:
+                if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)):
                 # if (not os.path.exists(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)) or cf_getBC.i_frame < 150:
                     try:
                         if 0:
@@ -488,6 +497,7 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
                         utility.print_red("Img is None")
                     print("get_B_C, view: %d" % i_view)
                 else:
+                    #todo: num
                     print("Use B_C before.")
 
                 # print(pathSave_imageClustered + "image%d_B.txt" % cf_getBC.i_frame)
@@ -589,8 +599,12 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
             for i_view in range(8):
                 for i_C in range(C8[i_view].__len__()):
                     # 挂载第三维. todo: 统计
-                    RGB_space[i_C, i_view, :] = np.array([C8[i_view][i_C][0], C8[i_view][i_C][1], C8[i_view][i_C][2]])
-
+                    try:
+                        RGB_space[i_C, i_view, :] = np.array([C8[i_view][i_C][0], C8[i_view][i_C][1], C8[i_view][i_C][2]])
+                    except IndexError:
+                        print("C8[i_view]: ")
+                        print(C8[i_view])
+                        print("C8[i_view].__len__(): %d" % C8[i_view].__len__())
             # float64
             RGB_space[0:63, 8, :] = body[0][2]
 
@@ -600,11 +614,8 @@ def getImageProduced(mu_sigma_D_EII, image_color_clustered, max_of_cluster, mode
             elif silOrColor == "col":
                 RGB_space_uint8 = np.uint8(RGB_space * 255)
 
-                # todo 颜色重写
-                LAB_space = mLab.RGB2LAB(RGB_space_uint8)
-                LAB_space[:, :, 0] = function_mini.compress_L_in_Lab(LAB_space[:, :, 0])
-                RGB_space_new = mLab.LAB2RGB(LAB_space)
-                color_all = RGB_space_new / 255.
+
+                color_all = normalize_light(RGB_space_uint8)
 
 
             return color_all

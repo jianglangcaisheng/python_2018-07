@@ -67,7 +67,7 @@ if 1:
 
     params = Params()
 
-    trainStepPose = 0.00000001 * 3 / 10 / 10 / 1
+    trainStepPose = 0.00000001 * 3 / 10 / 10 * 3
 
     num_times_in_shape = 4
 
@@ -172,7 +172,11 @@ if 1:
             ["181211", "2333", "D111_cluster24000_bottomMean"],
             ["181212", "1018", "D111_cluster2400_maxSpeed"],
             ["181212", "1117", "D111_cluster2400_people"],
-            ["181212", "1117", "D111_cluster24000_watchChange"]
+            ["181212", "1117", "D111_cluster24000_watchChange"],
+            ["181218", "2149", "D111_cluster8000_step2"],
+            ["181218", "2246", "D111_cluster8000_step4"],
+            ["181218", "2341", "D111_cluster8000_step10"],
+            ["181218", "2621", "D111_cluster8000_step3_allColor"]
             # ,
             # ["181212", "0144", "D111_cluster8000_testSpeed"],
             # ["181212", "0149", "D111_cluster2400_testSpeed"]
