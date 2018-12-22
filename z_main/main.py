@@ -1194,7 +1194,7 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                     print("当前帧预计剩余时间：{0}".format(str(time_delta * (train_times - (i % train_times)) / times_per_print)))
 
                 # save image
-                if (i + 1) % cf.trainTimes_poseInPose == 0 \
+                if 0 and (i + 1) % cf.trainTimes_poseInPose == 0 \
                         or mode == "expect color" \
                         or (mode == "sil_for_deep" and ((i + 1) % cf.trainTimes_poseInShape_array[i_times]) == 0 and 0):
                     coordinate_2D_eval = np.float64(sess.run(coordinate_2D_tensor))
@@ -1247,7 +1247,7 @@ def run(ifPose = True, filename_pose="", filename_rl="", filename_save="", note_
                         D_in_tensor: D_npz[0],
                         EII_tensor: EII_npz[0]})
 
-                if i % (10) == 0 and 1:
+                if i % (10) == 0 and 0:
                     if ifAllVideo == True:
                         filename_save_real = filename_save + ("%d-i%d.mat" % (i_frame, i))
                     save_result(filename_save_real)

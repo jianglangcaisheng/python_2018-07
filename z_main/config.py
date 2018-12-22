@@ -53,11 +53,17 @@ if 1:
     else:
         assert False, "Error arg"
 
+    class SwitchProject:
+        def __init__(self):
+            self.is_mustProBC = True
+
+    switch_project = SwitchProject()
+
     class Params:
         def __init__(self):
             # max_cluster>63
-            max_clusters = [24000, 8000, 2400, 100]
-            self.max_cluster = max_clusters[1]
+            max_clusters = [24000, 8000, 2400, 600, 100]
+            self.max_cluster = max_clusters[3]
             self.epsilon = 0.15
             self.bodyNumBall = 63
             self.imageWidth = 2048
@@ -176,7 +182,8 @@ if 1:
             ["181218", "2149", "D111_cluster8000_step2"],
             ["181218", "2246", "D111_cluster8000_step4"],
             ["181218", "2341", "D111_cluster8000_step10"],
-            ["181218", "2621", "D111_cluster8000_step3_allColor"]
+            ["181218", "2621", "D111_cluster8000_step3_allColor"],
+            ["181219", "0934", "D111_cluster2400_testSpeed"]
             # ,
             # ["181212", "0144", "D111_cluster8000_testSpeed"],
             # ["181212", "0149", "D111_cluster2400_testSpeed"]
